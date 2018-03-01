@@ -11,18 +11,30 @@ contract GoodAuction is AuctionInterface {
 
 	/* 	Bid function, now shifted to pull paradigm
 		Must return true on successful send and/or bid, bidder
-		reassignment. Must return false on failure and 
+		reassignment. Must return false on failure and
 		allow people to retrieve their funds  */
 	function bid() payable external returns(bool) {
-		// YOUR CODE HERE
+		if (msg.value <= highestBid) {
+			refunds[msg.sender] += msg.value;
+			return false;
+		} else {
+			refunds[highestBidder] += highestBid;
+			highestBidder = msg.sender;
+			highestBid = msg.value;
+			return true;
+		}
 	}
 
-	/*  Implement withdraw function to complete new 
-	    pull paradigm. Returns true on successful 
+	/*  Implement withdraw function to complete new
+	    pull paradigm. Returns true on successful
 	    return of owed funds and false on failure
 	    or no funds owed.  */
 	function withdrawRefund() external returns(bool) {
-		// YOUR CODE HERE
+		if (refunds[msg.sender] > 0) {
+			msg.sender.send(refunds[msg.sender]);
+			return true;
+		}
+		return false;
 	}
 
 	/*  Allow users to check the amount they are owed
@@ -34,17 +46,20 @@ contract GoodAuction is AuctionInterface {
 
 
 	/* 	Consider implementing this modifier
-		and applying it to the reduceBid function 
+		and applying it to the reduceBid function
 		you fill in below. */
 	modifier canReduce() {
-		_;
+		if (msg.sender == highestBidder) _;
 	}
 
 
 	/*  Rewrite reduceBid from BadAuction to fix
 		the security vulnerabilities. Should allow the
 		current highest bidder only to reduce their bid amount */
-	function reduceBid() external {}
+	function reduceBid() external canReduce {
+		highestBid -= 1;
+		require(highestBidder.send(1));
+	}
 
 
 	/* 	Remember this fallback function
@@ -55,7 +70,7 @@ contract GoodAuction is AuctionInterface {
 		How do we send people their money back?  */
 
 	function () payable {
-		// YOUR CODE HERE
+		revert();
 	}
 
 }
